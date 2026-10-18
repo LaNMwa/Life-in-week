@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>餘生｜Life in Weeks</title>
+<style>
+:root{--bg:#07080a;--tx:#e8eef5;--mu:#8d99a8;--ac:#ff5a1f;--pa:#5a2e1f;--fu:#d4dde8;--ln:#2a2f38;--pn:#101319}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--tx);font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;line-height:1.6}
+body{min-height:100vh;overflow-x:hidden}
+button,input,select{font:inherit;color:inherit}
+button{background:var(--pn);border:1px solid var(--ln);border-radius:4px;padding:.45em .9em;cursor:pointer}
+button:hover{border-color:var(--ac)}
+button.pri{background:var(--ac);border-color:var(--ac);color:#150700;font-weight:700}
+input,select{background:#111720;color:#f1f5f9;-webkit-text-fill-color:#f1f5f9;color-scheme:dark;border:1px solid #465262;border-radius:6px;padding:.65em .8em;width:100%;min-height:46px}
+input::placeholder{color:#aab6c5;-webkit-text-fill-color:#aab6c5;opacity:1}
+select{appearance:none;-webkit-appearance:none;padding-right:2em;background-image:linear-gradient(45deg,transparent 50%,#cbd5e1 50%),linear-gradient(135deg,#cbd5e1 50%,transparent 50%);background-position:calc(100% - 17px) 50%,calc(100% - 12px) 50%;background-size:5px 5px;background-repeat:no-repeat}
+select option{background:#111720;color:#f1f5f9}
+.birth-fields{display:grid;grid-template-columns:minmax(0,1.5fr) repeat(2,minmax(0,1fr));gap:10px;margin-top:6px}
+.birth-fields>*{min-width:0}
+:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.err{color:#ff8a5c;font-size:.9rem;min-height:1.3em;margin:.2em 0}
+.hide{display:none!important}
+.wrap{width:100%;margin:0 auto;padding:24px clamp(16px,2.4vw,52px) 40px}
+small,.mu{color:var(--mu)}
+/* start */
+#start{min-height:100vh;display:grid;place-items:center;padding:20px}
+#start .box{max-width:520px;width:100%}
+#start h1{font-size:clamp(3rem,10vw,5.5rem);margin:0;letter-spacing:.2em;line-height:1.1}
+#start h1 span{display:block;font-size:.9rem;letter-spacing:.3em;color:var(--ac);font-weight:400}
+#start p{color:var(--mu)}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+label{display:block;font-size:.9rem;color:var(--mu);margin-top:10px}
+/* intro */
+#intro{position:fixed;inset:0;background:rgba(7,8,10,.72);display:grid;place-items:center;text-align:center;z-index:9;transition:opacity .8s}
+#intro.out{opacity:0;pointer-events:none}
+#intro h2{font-size:clamp(1.6rem,5vw,3rem);margin:0}
+#intro p{color:var(--ac);font-size:1.2rem}
+#intro button{position:absolute;right:16px;top:16px}
+/* summary */
+#demo{background:#3a1a0c;border:1px solid var(--ac);padding:8px 12px;border-radius:4px;margin-bottom:10px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+#note{color:#ffb28f;font-size:.9rem}
+.top{display:flex;gap:20px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;border-bottom:1px solid var(--ln);padding-bottom:12px}
+#bigLabel{color:var(--mu);margin:0}
+#big{font-size:clamp(2.5rem,5.3vw,5.8rem);font-weight:800;line-height:1;font-variant-numeric:tabular-nums;color:var(--tx);margin:0}
+#big b{color:var(--ac)}
+#sub{margin:.3em 0 0;color:var(--mu)}
+.stats{display:flex;gap:22px;flex-wrap:wrap;padding-top:8px}
+.stats div b{display:block;font-size:1.4rem;font-variant-numeric:tabular-nums}
+#cd{font-variant-numeric:tabular-nums;color:var(--tx);font-weight:700;font-size:clamp(1.2rem,1.8vw,1.8rem)}
+.main{display:flex;flex-direction:column;gap:28px;margin-top:20px;min-width:0}
+.wall-section{min-width:0}
+.wall-caption{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.wall-caption .legend{margin:0}
+.wall-hint{margin:0;font-size:.8rem;color:var(--mu)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.85rem;color:var(--mu);margin:0 0 8px}
+.legend i{display:inline-block;width:11px;height:11px;vertical-align:-1px;margin-right:5px;border-radius:1px}
+.tools{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center}
+.scroll{width:100%;padding:4px 0 8px;background:transparent;border:0}
+#wall{--cols:104;position:relative;width:100%;margin:0;isolation:isolate}
+#wall-canvas{display:block;width:100%;cursor:crosshair;touch-action:pan-y}
+#week-cursor,#week-pulse{position:absolute;left:0;top:0;pointer-events:none;box-sizing:border-box;border-radius:2px}
+#week-cursor{border:1px solid #fff;outline:1px solid #07080a;z-index:2}
+#week-pulse{border:1px solid #fff;box-shadow:0 0 10px 2px #ff5a1f;animation:weekGlow 2.4s ease-in-out infinite}
+.motion-paused #week-pulse{animation-play-state:paused}
+.reveal #wall-canvas{opacity:.55}
+@keyframes weekGlow{0%,100%{opacity:.35}50%{opacity:.9}}
+#info{margin-top:8px;min-height:3.2em;padding:8px 10px;border-left:3px solid var(--ac);background:var(--pn);font-size:.92rem}
+aside{width:100%;border-top:1px solid var(--ln);padding:26px 0 0}
+.goals-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.goals-heading p{margin:0;color:var(--mu);font-size:.9rem}
+#goals ul{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px}
+#goals .goal{background:var(--pn);padding:16px;margin:0}
+aside h3{margin:0 0 6px}
+aside h4{margin:14px 0 4px;color:var(--mu);font-weight:500}
+ul{list-style:none;margin:0;padding:0}
+.goal{border:1px solid var(--ln);padding:8px;margin-bottom:6px;border-radius:4px}
+.goal.sel{border-color:var(--ac)}
+.gsel{display:block;width:100%;text-align:left;background:none;border:0;padding:0;word-break:break-word}
+.goal .acts{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.goal .acts button{padding:.2em .6em;font-size:.82rem}
+.tag{display:inline-block;border:1px solid var(--mu);border-radius:3px;padding:0 .4em;font-size:.75rem;margin-right:4px;color:var(--mu)}
+.tag.o{border-color:var(--ac);color:var(--ac)}
+.bottom{margin-top:18px;padding-top:14px;border-top:1px solid var(--ln);display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center}
+input[type=range]{padding:0;min-height:28px;accent-color:var(--ac)}
+@media(max-width:999px){#wall{--cols:52}.bottom{grid-template-columns:1fr}.top{gap:12px}.stats{gap:20px}.wrap{padding:18px 20px 32px}}
+@media(max-width:540px){#wall{--cols:26;gap:3px}.wrap{padding:16px 14px 28px}.main{margin-top:18px;gap:22px}#big{font-size:clamp(2.5rem,10vw,3.5rem)}.stats{gap:12px 20px}.stats div b{font-size:1.2rem}.birth-fields{gap:8px}.birth-fields input,.birth-fields select{font-size:16px;padding-left:10px}.goals-heading{align-items:flex-start}.wall-caption{gap:8px}.legend{gap:8px 12px;font-size:.75rem}#info{font-size:.82rem}}
+@media(prefers-reduced-motion:reduce){#week-pulse{animation:none;opacity:.7}#intro{transition:none}}
+dialog{background:var(--pn);color:var(--tx);border:1px solid var(--ln);border-radius:6px;padding:20px;max-width:420px;width:calc(100% - 32px)}dialog::backdrop{background:rgba(0,0,0,.7)}dialog h3{margin:0 0 4px}
+.goal-mode{border:0;margin:4px 0 14px;padding:0;min-width:0}
+.goal-mode legend{color:var(--mu);font-size:.9rem;margin-bottom:8px}
+.mode-options{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mode-options label{position:relative;margin:0;cursor:pointer}
+.mode-options input{position:absolute;opacity:0;width:1px;height:1px;min-height:0;padding:0}
+.mode-options span{display:block;text-align:center;border:1px solid #465262;border-radius:6px;background:#111720;color:var(--tx);padding:10px 8px}
+.mode-options input:checked+span{border-color:var(--ac);background:#382013;color:#ffc1a3}
+.mode-options input:focus-visible+span{outline:2px solid #fff;outline-offset:3px}
+#gd small{display:block;line-height:1.6}
+</style>
+</head>
+<body>
+
+<section id="start" class="hide">
+ <div class="box">
+  <h1>餘生<span>LIFE IN WEEKS</span></h1>
+  <p>人生只有約四千個禮拜。輸入生日與你假設的壽命，看看每一週。</p>
+  <form id="sf" novalidate>
+   <label id="bdl">生日</label>
+   <div class="birth-fields" role="group" aria-labelledby="bdl"><input id="by" type="number" inputmode="numeric" min="1900" max="2100" placeholder="年（如 1998）" aria-label="出生年"><select id="bm" aria-label="出生月"><option value="">月</option></select><select id="bdd" aria-label="出生日"><option value="">日</option></select></div>
+   <div class="err" id="eb" role="alert"></div>
+   <label for="lf">假設活到幾歲（1–120，預設 80）</label>
+   <input id="lf" type="number" min="1" max="120" step="1" value="80">
+   <div class="err" id="el" role="alert"></div>
+   <div class="row"><button class="pri" type="submit">看看我的人生</button><button type="button" id="demoBtn">試看範例</button></div>
+   <p id="cancelWrap" class="hide"><button type="button" id="cancelEdit">取消修改</button></p>
+  </form>
+  <p><small>資料只保存在這個瀏覽器，不會上傳。數字是你設定的假設，不是壽命預測。</small></p>
+ </div>
+</section>
+
+<div id="intro" class="out" aria-live="polite">
+ <div><h2 id="i1"></h2><p>剩下的，你想怎麼用？</p></div>
+ <button id="skip">略過</button>
+</div>
+
+<main id="app" class="wrap hide">
+ <div id="demo" class="hide"><span>示範模式：以下為虛構資料，不會被儲存。</span><button id="exitDemo">離開示範</button></div>
+ <div id="note" role="status"></div>
+ <div class="top">
+  <div>
+   <p id="bigLabel"></p>
+   <p id="big"></p>
+   <p id="sub"></p>
+   <button id="back" class="hide">回到整段人生</button>
+  </div>
+  <div class="stats">
+   <div><b id="lived"></b><small>已完成週數</small></div>
+   <div><b id="pct"></b><small>人生已過</small></div>
+   <div><span id="cd"></span><br><small id="cdLabel"></small></div>
+  </div>
+ </div>
+ <div class="main">
+  <section class="wall-section" aria-label="人生時間方塊牆">
+   <div class="wall-caption"><p class="legend"><span><i style="background:var(--pa);border:1px solid #7a4630"></i>過去</span><span><i style="background:var(--ac)"></i>本週</span><span><i style="background:var(--fu)"></i>未來</span><span><i style="border:1px dashed #fff"></i>不足七天的最後一週</span><span><i style="background:#fff;border-radius:50%"></i>目標標記</span></p>
+   <p class="wall-hint"><span id="rowCount">每列 104 週</span> · 一格七天 · 點選查看日期</p></div>
+   <div class="scroll" id="sc"><div id="wall"><canvas id="wall-canvas" tabindex="0" role="img" aria-label="人生方塊牆，每格一週。點選或使用方向鍵查看每週資訊。" aria-describedby="info">每格代表一週，人生摘要見上方數字。</canvas><div id="week-pulse" class="hide" aria-hidden="true"></div><div id="week-cursor" class="hide" aria-hidden="true"></div></div></div>
+   <div id="info" role="status">點選或移到任一方塊，查看該週資訊。</div>
+  </section>
+  <aside aria-labelledby="goalsTitle">
+   <div class="goals-heading"><div><h3 id="goalsTitle">剩下的時間，你想留給什麼？</h3><p>選一個目標，看看從現在到那一天，還有多少週。</p></div>
+   <button class="pri" id="addG">＋ 新增目標</button></div>
+   <div id="goals"></div>
+  </aside>
+ </div>
+ <div class="bottom">
+  <div>
+   <label for="sl">假設壽命：<b id="slv"></b> 歲</label>
+   <input id="sl" type="range" min="1" max="120" step="1">
+  </div>
+  <div class="row"><button id="editB">修改生日</button><button id="clr">清除我的資料</button></div>
+ </div>
+</main>
+
+<dialog id="gd" aria-labelledby="gtitle">
+<h3 id="gtitle">新增人生目標</h3>
+   <form id="gf" novalidate>
+    <label for="gn">想完成的事</label>
+    <input id="gn" maxlength="60" placeholder="例如：學會游泳">
+    <div class="err" id="egn" role="alert"></div>
+    <fieldset class="goal-mode"><legend>設定期限的方式</legend><div class="mode-options">
+     <label><input type="radio" name="goalMode" value="age" checked><span>依年齡</span></label>
+     <label><input type="radio" name="goalMode" value="date"><span>依日期</span></label>
+    </div></fieldset>
+    <div id="ageFields">
+     <label for="ga">幾歲前完成（1–120）</label>
+     <input id="ga" type="number" min="1" max="120" step="1" placeholder="例如：60" aria-describedby="ega ageHelp">
+     <div class="err" id="ega" role="alert"></div>
+     <small id="ageHelp">適合退休等人生規劃。「60 歲前」指 60 歲生日當天零點到期。</small>
+    </div>
+    <div id="dateFields" class="hide">
+     <label for="gdate">目標日期</label>
+     <input id="gdate" type="date" min="1900-01-01" max="9999-12-31" disabled aria-describedby="egdate dateHelp">
+     <div class="err" id="egdate" role="alert"></div>
+     <small id="dateHelp">適合推甄、考試或旅行。倒數至所選日期當天 00:00；若已過期，會顯示經過天數。</small>
+    </div>
+    <div class="row"><button class="pri" id="gsave" type="submit">新增目標</button><button type="button" id="gcancel">取消</button></div>
+   </form>
+</dialog>
+
+<script>
+(()=>{
+const KEY='yusheng-life-weeks-v1';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const dn=(y,m,d)=>Math.round(Date.UTC(y,m,d)/864e5);
+const dnOf=d=>dn(d.getFullYear(),d.getMonth(),d.getDate());
+const parse=s=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s||'');if(!m)return null;const y=+m[1],mo=+m[2]-1,d=+m[3];const t=new Date(y,mo,d);return t.getFullYear()===y&&t.getMonth()===mo&&t.getDate()===d&&y>=1900?{y,m:mo,d}:null};
+const leap=y=>y%4===0&&(y%100!==0||y%400===0);
+const at=(b,a)=>{const y=b.y+a;let d=b.d;if(b.m===1&&d===29&&!leap(y))d=28;return new Date(y,b.m,d)};
+const fd=d=>`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+const pad=n=>String(n).padStart(2,'0');
+const num=n=>Math.round(n).toLocaleString('en-US');
+const todayStr=()=>{const n=new Date();return `${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())}`};
+
+let S=null,real=null,demo=false,sel=null,editId=null,lastDay=null,tmr=null,noteT;
+const note=t=>{$('#note').textContent=t;clearTimeout(noteT);if(t)noteT=setTimeout(()=>$('#note').textContent='',7000)};
+
+function minAge(b){const now=new Date();let a=Math.max(1,now.getFullYear()-b.y-1);while(at(b,a)<=now)a++;return a}
+
+/* storage */
+function save(){if(demo||!S)return;try{localStorage.setItem(KEY,JSON.stringify({v:1,bs:S.bs,life:S.life,goals:S.goals}))}catch(e){note('此瀏覽器無法保存資料，這次的內容只在目前頁面有效。')}}
+function load(){try{const r=localStorage.getItem(KEY);if(!r)return null;const o=JSON.parse(r);const b=parse(o.bs);if(o.v!==1||!b||!Number.isInteger(o.life)||o.life<1||o.life>120||!Array.isArray(o.goals))throw 0;if(at(b,o.life)<=new Date())throw 0;
+ const goals=o.goals.filter(g=>g&&typeof g.name==='string'&&g.name.trim()&&(g.type==='date'?!!parse(g.date):((g.type===undefined||g.type==='age')&&Number.isInteger(g.age)&&g.age>=1&&g.age<=120))).map(g=>({id:String(g.id||Date.now()+Math.random()),name:g.name,...(g.type==='date'?{type:'date',date:g.date}:{type:'age',age:g.age}),done:!!g.done,created:g.created??Date.now()}));
+ return{bs:o.bs,life:o.life,goals}}catch(e){try{note('已存的資料無法讀取，請重新輸入。')}catch(_){}return null}}
+
+/* calc */
+function calc(){const b=parse(S.bs),now=new Date(),tdn=dnOf(now),bdn=dn(b.y,b.m,b.d),end=at(b,S.life),total=dnOf(end)-bdn;
+ const birth=new Date(b.y,b.m,b.d),dead=now>=end;
+ const weeks=Math.ceil(total/7),cur=Math.floor((tdn-bdn)/7);
+ const pct=dead?100:Math.min(100,Math.max(0,(now-birth)/(end-birth)*100));
+ return{b,now,tdn,bdn,end,total,weeks,cur,pct,dead,remDays:Math.max(0,dnOf(end)-tdn)}}
+function goalDeadline(g,b){if(g.type==='date'){const d=parse(g.date);return new Date(d.y,d.m,d.d)}return at(b,g.age)}
+function goalWhen(g,dl){return g.type==='date'?`${fd(dl)}（指定日期）`:`${g.age} 歲前（${fd(dl)}）`}
+function ginfo(g,c){const dl=goalDeadline(g,c.b),ddn=dnOf(dl),out=dl>c.end||ddn<c.bdn;
+ return{g,dl,out,over:c.now>=dl,rem:ddn-c.tdn,idx:out?-1:Math.min(Math.floor((ddn-c.bdn)/7),c.weeks-1)}}
+
+/* The week wall uses one cached canvas, not thousands of animated DOM nodes. */
+let wallModel=null,wallGeometry=null,paintFrame=0,hoverFrame=0,hoverPoint=null,activeWeek=-1;
+let spriteCache=null,saveTimer=0,sliderFrame=0;
+const wall=$('#wall'),canvas=$('#wall-canvas'),ctx=canvas.getContext('2d');
+const cursor=$('#week-cursor'),pulse=$('#week-pulse');
+function scheduleWall(){if(!paintFrame)paintFrame=requestAnimationFrame(()=>{paintFrame=0;drawWall()})}
+function render(){const c=calc(),gi=S.goals.map(g=>ginfo(g,c)),counts=new Map();
+ gi.forEach(x=>{if(x.idx>=0)counts.set(x.idx,(counts.get(x.idx)||0)+1)});
+ const sg=gi.find(x=>x.g.id===sel);
+ const highlight=sg&&!sg.over&&!sg.out&&!sg.g.done;
+ wallModel={c,gi,sg,counts,r0:highlight?c.cur:-1,r1:highlight?sg.idx:-1};
+ activeWeek=-1;cursor.classList.add('hide');$('#info').textContent='點選或移到任一方塊，查看該週資訊。也可聚焦格子牆後使用方向鍵。';scheduleWall();
+ $('#sl').min=minAge(c.b);$('#sl').value=S.life;$('#slv').textContent=S.life;
+ $('#lived').textContent=num(c.cur)+' 週';$('#pct').textContent=c.pct.toFixed(1)+'%';
+ $('#back').classList.toggle('hide',!sg);
+ summary(c,sg);goalsUI(gi,c);lastDay=c.tdn;tick()}
+function makeSprites(size,dpr){
+ const key=size.toFixed(4)+':'+dpr.toFixed(3);
+ if(spriteCache&&spriteCache.key===key)return spriteCache.tiles;
+ const colors={p:['#4a2c21','#251b17','#70432e','#120e0c'],f:['#e6edf5','#9fadc0','#f6f9fd','#536074'],n:['#ff793f','#ff5a1f','#fff','#8c2a0d'],r:['#ffcbb2','#ffab83','#ffe5d6','#86503b']};
+ const tiles={};
+ for(const [state,col] of Object.entries(colors)){
+  const tile=document.createElement('canvas');tile.width=tile.height=Math.ceil((size+2)*dpr);
+  const t=tile.getContext('2d');t.scale(dpr,dpr);
+  t.fillStyle=col[3];t.fillRect(0,2,size,size);
+  const gradient=t.createLinearGradient(0,0,size,size);gradient.addColorStop(0,col[0]);gradient.addColorStop(1,col[1]);
+  t.fillStyle=gradient;t.fillRect(0,0,size,size);t.fillStyle=col[2];t.fillRect(0,0,size,Math.min(1,size/5));
+  tiles[state]=tile;
+ }
+ spriteCache={key,tiles};return tiles;
+}
+function positionOverlay(el,i){
+ const g=wallGeometry;if(!g||i<0||i>=g.weeks){el.classList.add('hide');return}
+ el.style.width=el.style.height=g.cell+'px';
+ el.style.transform=`translate(${(i%g.cols)*g.step}px,${Math.floor(i/g.cols)*g.step}px)`;
+ el.classList.remove('hide');
+}
+function drawWall(){
+ if(!wallModel||$('#app').classList.contains('hide'))return;
+ const started=performance.now(),width=wall.clientWidth;if(!width)return;
+ const cols=parseInt(getComputedStyle(wall).getPropertyValue('--cols'),10),gap=3;
+ const {c,sg,counts,r0,r1}=wallModel,cell=(width-(cols-1)*gap)/cols,step=cell+gap;
+ const height=Math.ceil(Math.ceil(c.weeks/cols)*step-gap+2);
+ // Bound the backing-store allocation on long phone layouts and retina screens.
+ const dpr=Math.min(devicePixelRatio||1,2,Math.sqrt(12000000/(width*height)));
+ const bw=Math.round(width*dpr),bh=Math.round(height*dpr);
+ if(canvas.width!==bw||canvas.height!==bh){canvas.width=bw;canvas.height=bh}
+ canvas.style.height=height+'px';ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,width,height);
+ wallGeometry={cols,cell,step,weeks:c.weeks};const tiles=makeSprites(cell,dpr),hasRange=r0>=0;
+ for(let i=0;i<c.weeks;i++){
+  const x=(i%cols)*step,y=Math.floor(i/cols)*step;
+  let state=i<c.cur?'p':i===c.cur?'n':'f';
+  const dim=hasRange&&i!==c.cur&&(i<r0||i>r1);
+  if(hasRange&&i>=r0&&i<=r1&&i!==c.cur)state='r';
+  ctx.globalAlpha=dim?.28:state==='f'?.9:1;
+  const tile=tiles[state];ctx.drawImage(tile,0,0,tile.width,tile.height,x,y,tile.width/dpr,tile.height/dpr);
+  if(i===c.weeks-1&&c.total%7){ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.setLineDash([2,2]);ctx.strokeRect(x+.5,y+.5,cell-1,cell-1);ctx.setLineDash([])}
+  if(counts.has(i)){
+   const count=counts.get(i),r=cell*.4;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x+cell/2,y+cell/2,r,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle='#101319';ctx.font=`bold ${Math.max(6,Math.min(11,cell*.65))}px system-ui`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(count>1?String(count):'◆',x+cell/2,y+cell/2,cell*.75);
+  }
+  if(i===c.cur||sg&&sg.idx===i){ctx.globalAlpha=1;ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.strokeRect(x+.5,y+.5,cell-1,cell-1)}
+ }
+ ctx.globalAlpha=1;positionOverlay(pulse,c.cur);if(activeWeek>=0)positionOverlay(cursor,activeWeek);
+ $('#rowCount').textContent=`每列 ${cols} 週`;
+ canvas.dataset.weeks=String(c.weeks);canvas.dataset.highlightWeeks=String(hasRange?Math.max(0,r1-r0+1):0);
+ canvas.dataset.drawMs=(performance.now()-started).toFixed(2);
+ canvas.setAttribute('aria-label',`人生方塊牆，共 ${c.weeks} 格，每格一週。點選或使用方向鍵查看每週資訊。`);
+}
+function summary(c,sg){const L=$('#bigLabel'),B=$('#big'),Sb=$('#sub');
+ const base=`以你設定活到 ${S.life} 歲計算`;
+ if(sg){const x=sg,name=esc(x.g.name);
+  L.innerHTML=`距離「${name}」｜${esc(goalWhen(x.g,x.dl))}`;
+  if(x.g.done){B.innerHTML='<b>已完成</b>';Sb.textContent='這個目標已標記完成。'}
+  else if(x.over){const d=-x.rem;B.innerHTML=d>0?`期限已過 <b>${num(d)}</b> 天`:'<b>期限在今天零點</b>';Sb.textContent='可修改期限或標記完成。'}
+  else{B.innerHTML=`你只剩下約 <b>${num(Math.ceil(x.rem/7))}</b> 週`;Sb.textContent=`${Math.floor(x.rem/7)} 週又 ${x.rem%7} 天（共 ${num(x.rem)} 天）`+(x.out?'　超出目前人生範圍':'')}
+  $('#cdLabel').textContent='距離目標期限'}
+ else{L.textContent=base;
+  if(c.dead){B.innerHTML='<b>0</b> 週';Sb.textContent='已到達你設定的終點，請調整假設年齡。'}
+  else{B.innerHTML=`你只剩下約 <b>${num(Math.ceil(c.remDays/7))}</b> 個星期`;Sb.textContent=`${Math.floor(c.remDays/7)} 週又 ${c.remDays%7} 天（共 ${num(c.remDays)} 天）。這是你輸入的假設，不是壽命預測。`}
+  $('#cdLabel').textContent='距離人生終點'}}
+function tick(){if(document.hidden||!S||$('#app').classList.contains('hide'))return;const c=calc();
+ if(c.tdn!==lastDay){render();return}
+ const x=S.goals.find(g=>g.id===sel);let t=c.end;
+ if(x)t=goalDeadline(x,c.b);
+ let ms=Math.max(0,t-c.now),s=Math.floor(ms/1000);
+ $('#cd').textContent=`${Math.floor(s/86400)} 天 ${pad(Math.floor(s%86400/3600))}:${pad(Math.floor(s%3600/60))}:${pad(s%60)}`}
+
+function goalsUI(gi,c){const sorted=[...gi].sort((a,b)=>a.dl-b.dl);
+ const act=sorted.filter(x=>!x.g.done&&!x.over),ov=sorted.filter(x=>!x.g.done&&x.over),dn_=sorted.filter(x=>x.g.done);
+ const item=x=>{const tags=(x.g.done?'<span class="tag">已完成</span>':'')+(!x.g.done&&x.over?'<span class="tag o">已過期</span>':'')+(x.out?'<span class="tag">超出目前人生範圍</span>':'')+(!x.g.done&&!x.over?`<span class="tag">約 ${num(Math.ceil(x.rem/7))} 週</span>`:'');
+  return `<li class="goal${x.g.id===sel?' sel':''}"><button class="gsel" data-id="${esc(x.g.id)}" aria-pressed="${x.g.id===sel}">${esc(x.g.name)}<br><small>${esc(goalWhen(x.g,x.dl))}</small><br>${tags}</button><div class="acts"><button data-a="done" data-id="${esc(x.g.id)}">${x.g.done?'取消完成':'標記完成'}</button><button data-a="edit" data-id="${esc(x.g.id)}">修改</button><button data-a="del" data-id="${esc(x.g.id)}">刪除</button></div></li>`};
+ const sec=(t,a)=>a.length?`<h4>${t}</h4><ul>${a.map(item).join('')}</ul>`:'';
+ $('#goals').innerHTML=S.goals.length?sec('進行中',act)+sec('已過期',ov)+sec('已完成',dn_):'<p class="mu">還沒有目標。寫下一件你真正想做的事，例如「學會游泳，35 歲前」。</p>'}
+
+/* wall interaction */
+function cellInfo(i){const c=calc();if(i<0||i>=c.weeks)return;
+ const st=new Date(c.b.y,c.b.m,c.b.d+7*i),days=Math.min(7,c.total-7*i),en=new Date(c.b.y,c.b.m,c.b.d+7*i+days-1);
+ const ageAt=d=>{let a=d.getFullYear()-c.b.y;if(at(c.b,a)>d)a--;return a};
+ const a1=ageAt(st),a2=ageAt(en);
+ const state=i<c.cur?'已過去':i===c.cur?'本週':'未來';
+ $('#info').textContent=`第 ${i+1} 週｜${fd(st)} – ${fd(en)}｜週初 ${a1} 歲｜${state}`+(a2!==a1?`｜本週跨越生日（${a1} → ${a2} 歲）`:'')+(days<7?`｜最後一週，只有 ${days} 天`:'')+goalAt(i,c)}
+function goalAt(i,c){const l=S.goals.filter(g=>ginfo(g,c).idx===i).map(g=>g.name);return l.length?'｜目標：'+l.join('、'):''}
+function hitWeek(x,y,rect,g){
+ if(!g)return -1;const px=x-rect.left,py=y-rect.top;
+ if(px<0||py<0||px>=rect.width||py>=rect.height)return -1;
+ const col=Math.floor(px/g.step),row=Math.floor(py/g.step),i=row*g.cols+col;
+ if(col>=g.cols||i>=g.weeks||px-col*g.step>g.cell||py-row*g.step>g.cell)return -1;
+ return i;
+}
+function showWeek(i){if(i===activeWeek)return;activeWeek=i;positionOverlay(cursor,i);if(i>=0)cellInfo(i)}
+canvas.addEventListener('pointermove',e=>{
+ if(e.pointerType==='touch')return;hoverPoint={x:e.clientX,y:e.clientY};
+ if(!hoverFrame)hoverFrame=requestAnimationFrame(()=>{hoverFrame=0;if(hoverPoint)showWeek(hitWeek(hoverPoint.x,hoverPoint.y,canvas.getBoundingClientRect(),wallGeometry))});
+});
+canvas.addEventListener('pointerleave',()=>{hoverPoint=null;cancelAnimationFrame(hoverFrame);hoverFrame=0;showWeek(-1)});
+canvas.addEventListener('click',e=>{showWeek(hitWeek(e.clientX,e.clientY,canvas.getBoundingClientRect(),wallGeometry))});
+canvas.addEventListener('focus',()=>{if(activeWeek<0&&wallModel)showWeek(Math.min(wallModel.c.cur,wallModel.c.weeks-1))});
+canvas.addEventListener('blur',()=>showWeek(-1));
+canvas.addEventListener('keydown',e=>{
+ if(!wallGeometry)return;const g=wallGeometry;let i=activeWeek<0?0:activeWeek;
+ if(e.key==='ArrowRight')i++;else if(e.key==='ArrowLeft')i--;else if(e.key==='ArrowDown')i+=g.cols;else if(e.key==='ArrowUp')i-=g.cols;else if(e.key==='Home')i=0;else if(e.key==='End')i=g.weeks-1;else return;
+ e.preventDefault();showWeek(Math.max(0,Math.min(g.weeks-1,i)));
+ const rect=canvas.getBoundingClientRect(),y=rect.top+Math.floor(activeWeek/g.cols)*g.step;
+ if(y<0||y+g.cell>innerHeight)scrollBy({top:y-innerHeight/2,behavior:'instant'});
+});
+let lastWallWidth=0;
+new ResizeObserver(entries=>{const width=entries[0].contentRect.width;if(width&&width!==lastWallWidth){lastWallWidth=width;scheduleWall()}}).observe(wall);
+addEventListener('resize',scheduleWall);
+let wallVisible=true;
+function syncWallMotion(){wall.classList.toggle('motion-paused',document.hidden||!wallVisible)}
+new IntersectionObserver(entries=>{wallVisible=entries[0].isIntersecting;syncWallMotion()}).observe(wall);
+document.addEventListener('visibilitychange',syncWallMotion);
+
+/* Coalesce slider events to one render per frame; persist after the gesture. */
+function flushSlider(){if(sliderFrame){cancelAnimationFrame(sliderFrame);sliderFrame=0;render()}clearTimeout(saveTimer);save()}
+$('#sl').addEventListener('input',e=>{
+ S.life=+e.target.value;$('#slv').textContent=S.life;
+ if(!sliderFrame)sliderFrame=requestAnimationFrame(()=>{sliderFrame=0;render()});
+ clearTimeout(saveTimer);saveTimer=setTimeout(()=>{saveTimer=0;save()},250);
+});
+$('#sl').addEventListener('change',flushSlider);
+addEventListener('pagehide',()=>{if(saveTimer)flushSlider()});
+
+/* goals */
+function setGoalMode(mode){
+ const byDate=mode==='date';
+ document.querySelectorAll('input[name="goalMode"]').forEach(r=>r.checked=r.value===mode);
+ $('#ageFields').classList.toggle('hide',byDate);$('#dateFields').classList.toggle('hide',!byDate);
+ $('#ga').disabled=byDate;$('#gdate').disabled=!byDate;$('#gdate').min=S?S.bs:'1900-01-01';
+ $('#ega').textContent=$('#egdate').textContent='';
+}
+document.querySelectorAll('input[name="goalMode"]').forEach(r=>r.addEventListener('change',()=>setGoalMode(r.value)));
+$('#gf').addEventListener('submit',e=>{e.preventDefault();
+ const n=$('#gn').value.trim(),mode=$('input[name="goalMode"]:checked').value;let ok=true,deadline;
+ $('#egn').textContent=n?'':(ok=false,'請輸入目標名稱');
+ $('#ega').textContent=$('#egdate').textContent='';
+ if(mode==='date'){
+  const date=$('#gdate').value;let err='';
+  if(!date||!parse(date))err='請選擇完整、有效的目標日期';
+  else if(date<S.bs)err='目標日期不能早於你的生日';
+  if(err){$('#egdate').textContent=err;ok=false}
+  deadline={type:'date',date};
+ }else{
+  const a=$('#ga').value.trim(),age=Number(a);
+  if(a===''||!Number.isInteger(age)||age<1||age>120){$('#ega').textContent='請輸入 1 到 120 的整數';ok=false}
+  deadline={type:'age',age};
+ }
+ if(!ok)return;
+ if(editId){const g=S.goals.find(x=>x.id===editId);if(g){delete g.age;delete g.date;Object.assign(g,{name:n},deadline)}}
+ else S.goals.push({id:'g'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:n,...deadline,done:false,created:Date.now()});
+ resetGF();save();render()});
+function resetGF(){editId=null;$('#gf').reset();setGoalMode('age');$('#egn').textContent='';$('#gsave').textContent='新增目標';$('#gtitle').textContent='新增人生目標';if($('#gd').open)$('#gd').close()}
+$('#gcancel').onclick=resetGF;
+$('#addG').onclick=()=>{resetGF();$('#gd').showModal();$('#gn').focus()};
+$('#goals').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.id,g=S.goals.find(x=>x.id===id);if(!g)return;const a=b.dataset.a;
+ if(!a){sel=sel===id?null:id;render();$('.top').scrollIntoView({behavior:reduce?'instant':'smooth',block:'start'});return}
+ if(a==='done'){g.done=!g.done}
+ else if(a==='del'){if(!confirm('刪除這個目標？'))return;S.goals=S.goals.filter(x=>x.id!==id);if(sel===id)sel=null}
+ else if(a==='edit'){resetGF();editId=id;$('#gn').value=g.name;setGoalMode(g.type==='date'?'date':'age');if(g.type==='date')$('#gdate').value=g.date;else $('#ga').value=g.age;$('#gsave').textContent='儲存修改';$('#gtitle').textContent='修改目標';$('#gd').showModal();$('#gn').focus();return}
+ save();render()});
+$('#back').onclick=()=>{sel=null;render()};
+
+/* screens */
+const bm=$('#bm'),bdd=$('#bdd');for(let i=1;i<=12;i++)bm.add(new Option(i+' 月',i));for(let i=1;i<=31;i++)bdd.add(new Option(i+' 日',i));
+const getBD=()=>{const y=$('#by').value.trim(),m=bm.value,d=bdd.value;return(y&&m&&d)?`${y.padStart(4,'0')}-${pad(m)}-${pad(d)}`:''};
+const setBD=s=>{const b=parse(s);$('#by').value=b?b.y:'';bm.value=b?b.m+1:'';bdd.value=b?b.d:''};
+function showStart(editing){$('#app').classList.add('hide');$('#start').classList.remove('hide');
+ setBD(editing&&S?S.bs:'');$('#lf').value=editing&&S?S.life:80;
+ $('#eb').textContent=$('#el').textContent='';$('#cancelWrap').classList.toggle('hide',!editing)}
+function showApp(intro){$('#start').classList.add('hide');$('#app').classList.remove('hide');
+ $('#demo').classList.toggle('hide',!demo);sel=null;resetGF();render();
+ const hide=()=>{$('#intro').classList.add('out');$('#app').classList.remove('reveal')};
+ if(intro&&!reduce){const c=calc();$('#i1').textContent=`你的人生，已經過了 ${c.pct.toFixed(1)}%。`;$('#intro').classList.remove('out');$('#app').classList.add('reveal');
+  setTimeout(()=>$('#app').classList.remove('reveal'),1400);clearTimeout(window._it);window._it=setTimeout(hide,3000);$('#skip').onclick=()=>{clearTimeout(window._it);hide()}}
+ else hide()}
+$('#sf').addEventListener('submit',e=>{e.preventDefault();
+ const bs=getBD(),b=parse(bs),life=Number($('#lf').value);let ok=true;
+ let m='';
+ if(!bs)m='請填寫完整的出生年、月、日';else if(!b)m='日期無效，請重新輸入';else if(bs>todayStr())m='生日不能晚於今天';
+ $('#eb').textContent=m;if(m)ok=false;
+ let m2='';
+ if(!Number.isInteger(life)||life<1||life>120)m2='請輸入 1 到 120 的整數';
+ else if(b&&at(b,life)<=new Date())m2=`這個年齡已經過了，請至少設定 ${minAge(b)} 歲`;
+ $('#el').textContent=m2;if(m2)ok=false;
+ if(!ok)return;
+ const goals=(S&&!demo)?S.goals:[];
+ demo=false;S={bs,life,goals};real=S;save();showApp(!$('#cancelWrap').classList.contains('hide')?false:true)});
+$('#cancelEdit').onclick=()=>showApp(false);
+$('#editB').onclick=()=>showStart(true);
+$('#demoBtn').onclick=()=>{if(!demo)real=S;demo=true;const y=new Date().getFullYear()-34;
+ S={bs:`${y}-06-15`,life:80,goals:[{id:'d1',name:'（範例）學會游泳',age:38,done:false,created:0},{id:'d2',name:'（範例）環島一次',age:36,done:false,created:0},{id:'d3',name:'（範例）出版一本書',age:50,done:false,created:0}]};showApp(true)};
+$('#exitDemo').onclick=()=>{demo=false;S=real;sel=null;if(S)showApp(false);else showStart(false)};
+$('#clr').onclick=()=>{if(demo){$('#exitDemo').click();return}
+ if(!confirm('確定清除生日、壽命與所有目標？此動作無法復原。'))return;
+ try{localStorage.removeItem(KEY)}catch(e){}
+ S=null;real=null;sel=null;showStart(false)};
+
+/* time sync */
+clearInterval(tmr);tmr=setInterval(tick,1000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)tick()});
+addEventListener('focus',tick);
+
+/* init */
+const saved=load();
+if(saved){S=saved;real=S;showApp(false)}else showStart(false);
+})();
+</script>
+</body>
+</html>
